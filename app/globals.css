@@ -162,3 +162,9 @@ table.grid input.cell.dirty { border-color: var(--accent); background: var(--acc
 table.grid input.cell.wide { width: 120px; }
 
 .login { max-width: 360px; margin: 80px auto; }
+
+/* legal pages */
+.legal { max-width: 720px; }
+.legal h2 { font-size: 16px; margin: 22px 0 6px; }
+.legal p, .legal li { color: var(--text-2); }
+.legal code { font-size: 13px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }

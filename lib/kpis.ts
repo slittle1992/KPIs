@@ -4,6 +4,7 @@ import { getEntries } from "./store";
 import { demoDay } from "./sources/demo";
 import { fetchGhlLeadsDaily, ghlConfigured } from "./sources/ghl";
 import { fetchMetaDaily, metaConfigured } from "./sources/meta";
+import { fetchWindsorDaily, windsorConfigured } from "./sources/windsor";
 import { fetchSmartwaterDaily, smartwaterConfigured } from "./sources/smartwater";
 import type { DayRow, Grouping, ISODate, KpiResponse, PeriodRow, SourceStatus } from "./types";
 
@@ -31,6 +32,14 @@ function finalize(p: PeriodRow): PeriodRow {
   p.revenuePerDemo = ratio(p.revenue, p.demos);
   return p;
 }
+
+/** Ad spend provider: Meta's own API when a token exists, otherwise Windsor.ai. */
+function adsProvider(): "meta" | "windsor" | null {
+  if (metaConfigured()) return "meta";
+  if (windsorConfigured()) return "windsor";
+  return null;
+}
+const ADS_LABEL = { meta: "Meta Ads", windsor: "Meta Ads via Windsor.ai" } as const;
 
 export function rollup(days: DayRow[], grouping: Grouping, from: ISODate, to: ISODate) {
   const map = new Map<string, PeriodRow>();
@@ -66,7 +75,9 @@ export async function getKpis(from: ISODate, to: ISODate, grouping: Grouping, re
 
   const [entries, meta, ghl, sw] = await Promise.all([
     getEntries(from, to),
-    DEMO ? null : cached(`meta:${from}:${to}`, TTL, () => fetchMetaDaily(from, to), refresh),
+    DEMO || !adsProvider()
+      ? null
+      : cached(`${adsProvider()}:${from}:${to}`, TTL, () => (adsProvider() === "meta" ? fetchMetaDaily(from, to) : fetchWindsorDaily(from, to)), refresh),
     DEMO || !ghlConfigured() ? null : cached(`ghl:${from}:${to}`, TTL, () => fetchGhlLeadsDaily(from, to), refresh),
     DEMO || !smartwaterConfigured() ? null : cached(`sw:${from}:${to}`, TTL, () => fetchSmartwaterDaily(from, to), refresh),
   ]);
@@ -76,15 +87,17 @@ export async function getKpis(from: ISODate, to: ISODate, grouping: Grouping, re
     sources.push({ key: "adSpend", label: "Ad spend", provider: "Sample data", mode: "demo" });
     sources.push({ key: "leads", label: "Leads", provider: "Sample data", mode: "demo" });
   } else {
+    const prov = adsProvider();
+    const adsLabel = prov ? ADS_LABEL[prov] : "Meta Ads";
     sources.push({
-      key: "adSpend", label: "Ad spend", provider: "Meta Ads",
-      mode: !metaConfigured() ? "off" : meta?.ok ? "live" : "error",
+      key: "adSpend", label: "Ad spend", provider: adsLabel,
+      mode: !prov ? "off" : meta?.ok ? "live" : "error",
       detail: meta?.detail,
     });
-    const leadsLive = ghl?.ok ? "GoHighLevel" : meta?.ok ? "Meta Ads (lead results)" : null;
+    const leadsLive = ghl?.ok ? "GoHighLevel" : meta?.ok ? `${adsLabel} (lead results)` : null;
     sources.push({
-      key: "leads", label: "Leads", provider: leadsLive ?? (ghlConfigured() ? "GoHighLevel" : "Meta Ads"),
-      mode: leadsLive ? "live" : ghlConfigured() || metaConfigured() ? "error" : "off",
+      key: "leads", label: "Leads", provider: leadsLive ?? (ghlConfigured() ? "GoHighLevel" : adsLabel),
+      mode: leadsLive ? "live" : ghlConfigured() || prov ? "error" : "off",
       detail: ghlConfigured() ? ghl?.detail : meta?.detail,
     });
   }

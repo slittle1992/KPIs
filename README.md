@@ -29,6 +29,12 @@ The dashboard shows totals for any date range as KPI tiles plus a spreadsheet-st
 ### Meta token
 In Meta Business Settings → Users → System users: create (or pick) a system user, assign it the Homefield ad accounts, then *Generate new token* with the `ads_read` permission and no expiry. Put the token in `META_ACCESS_TOKEN`. Ad account ids go in `META_AD_ACCOUNT_IDS`, comma-separated (Homefield Turf is `1283686466948265`; add `919742090786204` for the "Spencer Homefield" account if it's spending).
 
+### Option B: Windsor.ai instead of a Meta app
+If you'd rather not create a Meta developer app, leave `META_ACCESS_TOKEN` empty and set `WINDSOR_API_KEY` (windsor.ai → API Access). The Homefield ad accounts are already connected there, and the dashboard reads the same daily spend and lead counts through Windsor. Windsor's API needs a paid plan once the trial ends.
+
+### Privacy policy and terms URLs
+Meta's app dashboard asks for these when an app is switched to Live. For reading your own ad accounts the app can stay in **Development** mode and the token still works. If the form insists, the dashboard serves public pages at `/privacy` and `/terms`, so use `https://<your-vercel-domain>/privacy` and `https://<your-vercel-domain>/terms`.
+
 ### GoHighLevel
 In the Homefield sub-account: Settings → Private Integrations → *Create new integration* with the `contacts.readonly` scope. Copy the token into `GHL_API_KEY`, and the sub-account's Location ID (Settings → Business Profile) into `GHL_LOCATION_ID`. A lead is counted on the day the contact was created. Set `GHL_LEAD_TAG` to count only contacts carrying a specific tag.
 

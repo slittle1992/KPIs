@@ -4,7 +4,8 @@ import { COOKIE, authEnabled, sessionToken } from "@/lib/auth";
 export async function middleware(req: NextRequest) {
   if (!authEnabled()) return NextResponse.next();
   const { pathname } = req.nextUrl;
-  if (pathname === "/login" || pathname === "/api/login") return NextResponse.next();
+  const PUBLIC = ["/login", "/api/login", "/privacy", "/terms"];
+  if (PUBLIC.includes(pathname)) return NextResponse.next();
 
   const ok = req.cookies.get(COOKIE)?.value === (await sessionToken());
   if (ok) return NextResponse.next();
