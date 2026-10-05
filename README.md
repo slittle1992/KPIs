@@ -27,7 +27,7 @@ The dashboard shows totals for any date range as KPI tiles plus a spreadsheet-st
 4. **Deploy.** Share the URL with Jared; he uses **Enter numbers** each day.
 
 ### Meta token
-In Meta Business Settings → Users → System users: create (or pick) a system user, assign it the Homefield ad accounts, then *Generate new token* with the `ads_read` permission and no expiry. Put the token in `META_ACCESS_TOKEN`. Ad account ids go in `META_AD_ACCOUNT_IDS`, comma-separated (Homefield Turf is `1283686466948265`; add `919742090786204` for the "Spencer Homefield" account if it's spending).
+In Meta Business Settings → Users → System users: create (or pick) a system user, assign it the Homefield ad accounts, then *Generate new token* with the `ads_read` permission and no expiry. Put the token in `META_ACCESS_TOKEN`. Ad account ids go in `META_AD_ACCOUNT_IDS`, comma-separated. Use both Homefield accounts: `1283686466948265,919742090786204` ("Homefield Turf" and "Spencer Homefield"; as of October 2026 all spend is on the second one).
 
 ### Option B: Windsor.ai instead of a Meta app
 If you'd rather not create a Meta developer app, leave `META_ACCESS_TOKEN` empty and set `WINDSOR_API_KEY` (windsor.ai → API Access). The Homefield ad accounts are already connected there, and the dashboard reads the same daily spend and lead counts through Windsor. Windsor's API needs a paid plan once the trial ends.
