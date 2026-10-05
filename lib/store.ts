@@ -13,11 +13,50 @@ import type { Entry, ISODate } from "./types";
  */
 const HASH = process.env.KPI_REDIS_KEY || "kpi:entries";
 
+/**
+ * Find Upstash/Vercel Redis credentials however the integration named them:
+ *  - UPSTASH_REDIS_REST_URL / _TOKEN, KV_REST_API_URL / _TOKEN (optionally prefixed, e.g. STORAGE_KV_REST_API_URL)
+ *  - a rediss:// URL (REDIS_URL, KV_URL, …) from which the REST endpoint + token can be derived
+ */
+export function resolveRedis(): { url: string; token: string; via: string } | null {
+  const env = process.env;
+  const explicit = env.KPI_REDIS_REST_URL && env.KPI_REDIS_REST_TOKEN;
+  if (explicit) return { url: env.KPI_REDIS_REST_URL!, token: env.KPI_REDIS_REST_TOKEN!, via: "KPI_REDIS_REST_URL" };
+
+  const keys = Object.keys(env).sort();
+  for (const suffix of ["UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"]) {
+    for (const k of keys) {
+      if (!k.endsWith(suffix) || !env[k]) continue;
+      const tokenKey = k.replace(/URL$/, "TOKEN");
+      if (env[tokenKey]) return { url: env[k]!, token: env[tokenKey]!, via: k };
+    }
+  }
+  for (const k of keys) {
+    if (!/(REDIS_URL|KV_URL)$/.test(k) || !env[k]) continue;
+    try {
+      const u = new URL(env[k]!);
+      if (!/^rediss?:$/.test(u.protocol) || !u.password) continue;
+      return { url: `https://${u.hostname}`, token: decodeURIComponent(u.password), via: k };
+    } catch {
+      /* ignore malformed */
+    }
+  }
+  return null;
+}
+
+/** Names (never values) of env vars that look Redis-related, for the setup banner. */
+export function redisEnvHints(): string[] {
+  return Object.keys(process.env)
+    .filter((k) => /REDIS|KV_|UPSTASH/i.test(k))
+    .sort();
+}
+
+let client: Redis | null | undefined;
 function redisClient(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
+  if (client !== undefined) return client;
+  const r = resolveRedis();
+  client = r ? new Redis({ url: r.url, token: r.token }) : null;
+  return client;
 }
 
 const FILE = path.join(process.cwd(), ".data", "entries.json");
